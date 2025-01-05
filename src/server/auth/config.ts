@@ -9,6 +9,9 @@ import {
   users,
   verificationTokens,
 } from "@/server/db/schema";
+import Resend from "next-auth/providers/resend";
+import { env } from "@/env";
+import { sendVerificationEmail } from "./authSendRequest";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -38,7 +41,20 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    DiscordProvider,
+    // DiscordProvider,
+    Resend({
+      // If your environment variable is named differently than default
+      apiKey: env.RESEND_KEY,
+      from: "testing.acegrader.com",
+      async sendVerificationRequest({
+        identifier: email,
+        url,
+        provider: { from },
+      }) {
+        await sendVerificationEmail({ magicLink: url, to: email });
+      },
+    }),
+
     /**
      * ...add more providers here.
      *

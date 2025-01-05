@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   index,
   integer,
+  pgEnum,
   pgTableCreator,
   primaryKey,
   text,
@@ -30,13 +31,13 @@ export const posts = createTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
-      () => new Date()
+      () => new Date(),
     ),
   },
   (example) => ({
     createdByIdIdx: index("created_by_idx").on(example.createdById),
     nameIndex: index("name_idx").on(example.name),
-  })
+  }),
 );
 
 export const users = createTable("user", {
@@ -55,8 +56,11 @@ export const users = createTable("user", {
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
+  ownedClubs: many(clubsToOwners),
+  collaboratedClubs: many(clubsToCollaborators),
 }));
 
+// Table for auth js
 export const accounts = createTable(
   "account",
   {
@@ -83,13 +87,14 @@ export const accounts = createTable(
       columns: [account.provider, account.providerAccountId],
     }),
     userIdIdx: index("account_user_id_idx").on(account.userId),
-  })
+  }),
 );
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
+// Table for auth js
 export const sessions = createTable(
   "session",
   {
@@ -106,13 +111,14 @@ export const sessions = createTable(
   },
   (session) => ({
     userIdIdx: index("session_user_id_idx").on(session.userId),
-  })
+  }),
 );
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
+// Table for auth js
 export const verificationTokens = createTable(
   "verification_token",
   {
@@ -125,5 +131,130 @@ export const verificationTokens = createTable(
   },
   (vt) => ({
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
+  }),
 );
+
+// Campus Enum
+export const campusEnum = pgEnum("campus", [
+  "scarborough",
+  "st george",
+  "mississauga",
+]);
+
+// Clubs
+export const clubs = createTable("club", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }),
+  profileImage: varchar("profile_image", { length: 255 }),
+  campus: campusEnum("campus"),
+  description: text("description"),
+});
+
+export const clubsRelations = relations(clubs, ({ many }) => ({
+  owners: many(clubsToOwners),
+  collaborators: many(clubsToCollaborators),
+  events: many(events),
+  collaboratorInvites: many(collaboratorInvites),
+}));
+
+// Many-To-Many between user(owners) and clubs
+export const clubsToOwners = createTable(
+  "clubs_to_owners",
+  {
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    clubId: varchar("club_id")
+      .notNull()
+      .references(() => clubs.id),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.clubId] }),
+  }),
+);
+export const clubsToOwnersRelations = relations(clubsToOwners, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubsToOwners.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [clubsToOwners.userId],
+    references: [users.id],
+  }),
+}));
+
+// Many-To-Many between user(collaborators) and clubs
+export const clubsToCollaborators = createTable(
+  "clubs_to_collaborators",
+  {
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    clubId: varchar("club_id")
+      .notNull()
+      .references(() => clubs.id),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.clubId] }),
+  }),
+);
+export const clubsToCollaboratorsRelations = relations(
+  clubsToCollaborators,
+  ({ one }) => ({
+    club: one(clubs, {
+      fields: [clubsToCollaborators.clubId],
+      references: [clubs.id],
+    }),
+    user: one(users, {
+      fields: [clubsToCollaborators.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+// Events
+export const events = createTable("event", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }),
+  description: text("description"),
+  image: varchar("image", { length: 255 }),
+  venue: varchar("venue", { length: 255 }),
+  startTime: timestamp("start_time", { withTimezone: true }),
+  endTime: timestamp("end_time", { withTimezone: true }),
+});
+export const eventsRelations = relations(events, ({ one }) => ({
+  club: one(clubs),
+}));
+
+// Collaborator Invites
+export const collaboratorInvites = createTable("collaborator_invites", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }).notNull(),
+});
+export const collaboratorInvitesRelations = relations(
+  collaboratorInvites,
+  ({ one }) => ({
+    club: one(clubs),
+  }),
+);
+
+// Owner Invites
+export const ownerInvites = createTable("collaborator_invites", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }).notNull(),
+  clubName: varchar("club_name", { length: 255 }),
+});

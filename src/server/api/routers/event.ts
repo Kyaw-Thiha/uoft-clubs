@@ -182,7 +182,7 @@ export const eventRouter = createTRPCRouter({
       }
     }),
 
-  getHighlights: publicProcedure.input(z.object({})).query(({ ctx, input }) => {
+  getHighlights: publicProcedure.query(({ ctx, input }) => {
     const now = new Date();
     const oneWeekFromNow = new Date();
     oneWeekFromNow.setDate(now.getDate() + 7);

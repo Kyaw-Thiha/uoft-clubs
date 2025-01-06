@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "@/server/api/trpc";
 import {
   clubsToCollaborators,
   collaboratorInvites,
@@ -10,6 +14,24 @@ import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const userRouter = createTRPCRouter({
+  getCurrentUser: publicProcedure.query(async ({ ctx }) => {
+    return ctx.db.query.users.findFirst({
+      where: eq(users.id, ctx.session?.user.id ?? ""),
+      with: {
+        ownedClubs: {
+          columns: {
+            clubId: true,
+          },
+        },
+        collaboratedClubs: {
+          columns: {
+            clubId: true,
+          },
+        },
+      },
+    });
+  }),
+
   edit: protectedProcedure
     .input(
       z.object({

@@ -5,30 +5,45 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { clubs, events, ownerInvites } from "@/server/db/schema";
+import {
+  clubs,
+  clubsToCollaborators,
+  events,
+  ownerInvites,
+  users,
+} from "@/server/db/schema";
 import { and, eq, gt, lt } from "drizzle-orm";
 import { checkUserAccess } from "@/server/lib/checkUserAccess";
 import { TRPCError } from "@trpc/server";
+import { imageSchema } from "@/server/lib/schema";
+import { utapi } from "@/server/uploadthing";
 
 export const clubRouter = createTRPCRouter({
+  getAll: publicProcedure.query(async ({ ctx, input }) => {
+    return ctx.db.query.clubs.findMany({
+      with: {
+        events: true,
+      },
+    });
+  }),
+
   get: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const club = await ctx.db.query.clubs.findFirst({
+      return ctx.db.query.clubs.findFirst({
         where: eq(clubs.id, input.id),
         with: {
           events: true,
         },
       });
-
-      return club ?? null;
     }),
 
   create: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1).max(255),
-        profileImage: z.string().min(1).max(255),
+        // profileImage: z.string().min(1).max(255),
+        profileImage: imageSchema,
         campus: z.enum(["scarborough", "st george", "mississauga"]),
         description: z.string().min(1),
       }),
@@ -46,9 +61,12 @@ export const clubRouter = createTRPCRouter({
         });
       }
 
+      // Uploading the image
+      const response = await utapi.uploadFiles(input.profileImage);
+
       await ctx.db.insert(clubs).values({
         name: input.name,
-        profileImage: input.profileImage,
+        profileImage: response.data?.key,
         campus: input.campus,
         description: input.description,
         // createdById: ctx.session.user.id,
@@ -60,7 +78,6 @@ export const clubRouter = createTRPCRouter({
       z.object({
         id: z.string().min(1).max(255),
         name: z.string().min(1).max(255).optional(),
-        profileImage: z.string().min(1).max(255).optional(),
         campus: z.enum(["scarborough", "st george", "mississauga"]).optional(),
         description: z.string().min(1).optional(),
       }),
@@ -76,7 +93,6 @@ export const clubRouter = createTRPCRouter({
           .update(clubs)
           .set({
             name: input.name,
-            profileImage: input.profileImage,
             campus: input.campus,
             description: input.description,
           })
@@ -118,6 +134,24 @@ export const clubRouter = createTRPCRouter({
         where: and(eq(events.clubId, input.clubId), lt(events.startTime, now)),
         orderBy: (events, { desc }) => [desc(events.startTime)],
       });
+    }),
+
+  getCollaborators: publicProcedure
+    .input(
+      z.object({
+        clubId: z.string().min(1).max(255),
+      }),
+    )
+    .query(({ ctx, input }) => {
+      return ctx.db
+        .select()
+        .from(users)
+        .innerJoin(
+          clubsToCollaborators,
+          eq(users.id, clubsToCollaborators.userId),
+        )
+        .innerJoin(clubs, eq(clubsToCollaborators.clubId, clubs.id))
+        .where(eq(clubs.id, input.clubId));
     }),
 
   // getLatest: protectedProcedure.query(async ({ ctx }) => {

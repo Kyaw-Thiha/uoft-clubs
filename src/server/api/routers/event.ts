@@ -11,6 +11,10 @@ import { TRPCError } from "@trpc/server";
 import { checkUserAccess } from "@/server/lib/checkUserAccess";
 
 export const eventRouter = createTRPCRouter({
+  getAll: publicProcedure.query(async ({ ctx, input }) => {
+    return ctx.db.query.events.findMany({});
+  }),
+
   get: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => {

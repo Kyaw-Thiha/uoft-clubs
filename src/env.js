@@ -14,6 +14,7 @@ export const env = createEnv({
     // AUTH_DISCORD_ID: z.string(),
     // AUTH_DISCORD_SECRET: z.string(),
     RESEND_KEY: z.string(),
+    UPLOADTHING_TOKEN: z.string(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -38,6 +39,7 @@ export const env = createEnv({
     // AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     // AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     RESEND_KEY: process.env.RESEND_KEY,
+    UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
   },

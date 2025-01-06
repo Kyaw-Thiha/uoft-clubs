@@ -16,6 +16,7 @@ export async function sendVerificationEmail(params: Params) {
       subject: "UofT Clubs Verification",
       react: MagicLinkEmail({ magicLink }),
     });
+    console.log(magicLink);
 
     if (error) {
       return Response.json({ error }, { status: 500 });

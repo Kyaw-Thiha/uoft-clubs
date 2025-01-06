@@ -8,7 +8,7 @@ import {
 import { events } from "@/server/db/schema";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { checkUserAccess } from "./checkUserAccess";
+import { checkUserAccess } from "@/server/lib/checkUserAccess";
 
 export const eventRouter = createTRPCRouter({
   get: publicProcedure

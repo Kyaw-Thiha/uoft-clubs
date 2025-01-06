@@ -7,7 +7,7 @@ import {
 } from "@/server/api/trpc";
 import { clubs, events, ownerInvites } from "@/server/db/schema";
 import { and, eq, gt, lt } from "drizzle-orm";
-import { checkUserAccess } from "./checkUserAccess";
+import { checkUserAccess } from "@/server/lib/checkUserAccess";
 import { TRPCError } from "@trpc/server";
 
 export const clubRouter = createTRPCRouter({

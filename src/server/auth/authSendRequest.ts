@@ -1,7 +1,5 @@
 import MagicLinkEmail from "@/app/_components/emails/magic-link";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import resend from "../lib/resend";
 
 interface Params {
   magicLink: string;

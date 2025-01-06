@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { collaboratorInvites } from "@/server/db/schema";
-import { checkUserAccess } from "./checkUserAccess";
+import { checkUserAccess } from "@/server/lib/checkUserAccess";
 import { TRPCError } from "@trpc/server";
 
 export const collaboratorInviteRouter = createTRPCRouter({

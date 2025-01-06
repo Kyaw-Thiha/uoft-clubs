@@ -1,3 +1,4 @@
+"use client";
 import type { ClubDetailsViewInterface } from "./interfaces";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,8 +25,9 @@ import { Textarea } from "../ui/textarea";
 import { imageSchema } from "@/server/lib/schema";
 import { FileUpload } from "../ui/file-upload";
 import { Button } from "../ui/button";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { useToast } from "@/app/hooks/use-toast";
+import { revalidatePaths } from "@/app/lib/pathRevalidation";
 
 const formSchema = z.object({
   name: z
@@ -44,15 +46,35 @@ const formSchema = z.object({
 });
 
 export const ClubDetailFormView = (props: ClubDetailsViewInterface) => {
+  const { toast } = useToast();
   const utils = api.useUtils();
+
   const createClub = api.club.create.useMutation({
     onSuccess: async () => {
       await utils.club.invalidate();
+    },
+    onError: (error) => {
+      if (error.data?.code == "UNAUTHORIZED") {
+        toast({
+          variant: "destructive",
+          title: "Unauthorized",
+          description: "You are not permitted to create a club",
+        });
+      }
     },
   });
   const editClub = api.club.edit.useMutation({
     onSuccess: async () => {
       await utils.club.invalidate();
+    },
+    onError: (error) => {
+      if (error.data?.code == "UNAUTHORIZED") {
+        toast({
+          variant: "destructive",
+          title: "Unauthorized",
+          description: "You are not permitted to edit the club",
+        });
+      }
     },
   });
 
@@ -73,18 +95,11 @@ export const ClubDetailFormView = (props: ClubDetailsViewInterface) => {
 
     // Revalidating paths for ISR
     // https://nextjs.org/docs/app/building-your-application/data-fetching/incremental-static-regeneration#on-demand-revalidation-with-revalidatetag
-    revalidatePaths();
+    void revalidatePaths();
 
     // Redirecting to details page
     redirect(`/clubs/${props.club?.id}`);
   }
-
-  const revalidatePaths = () => {
-    "use server";
-
-    revalidatePath("/clubs/[id]");
-    revalidatePath("/clubs/[id]/edit");
-  };
 
   function handleProfileImageUpload(files: File[]) {
     const images = files ?? [];

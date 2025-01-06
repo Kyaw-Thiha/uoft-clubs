@@ -56,8 +56,10 @@ export const users = createTable("user", {
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
-  ownedClubs: many(clubsToOwners),
-  collaboratedClubs: many(clubsToCollaborators),
+  ownedClubs: many(clubsToOwners, { relationName: "owned_clubs" }),
+  collaboratedClubs: many(clubsToCollaborators, {
+    relationName: "collaborated_clubs",
+  }),
 }));
 
 // Table for auth js
@@ -227,6 +229,9 @@ export const events = createTable("event", {
   venue: varchar("venue", { length: 255 }),
   startTime: timestamp("start_time", { withTimezone: true }),
   endTime: timestamp("end_time", { withTimezone: true }),
+  clubId: varchar("club_id")
+    .references(() => clubs.id, { onDelete: "cascade" })
+    .notNull(),
 });
 export const eventsRelations = relations(events, ({ one }) => ({
   club: one(clubs),
@@ -240,6 +245,9 @@ export const collaboratorInvites = createTable("collaborator_invites", {
     .$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
+  clubId: varchar("club_id")
+    .references(() => clubs.id, { onDelete: "cascade" })
+    .notNull(),
 });
 export const collaboratorInvitesRelations = relations(
   collaboratorInvites,
